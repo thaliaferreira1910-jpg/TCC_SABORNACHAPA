@@ -1,115 +1,140 @@
-<?php
-/*Aqui virá o código de busca 
-utilizando o comando SQL*/
-include "../conexao.php";
-?>
-
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Formulário Completo</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<style>
-body{
-    font-family:Arial;
-    background-color:#f2f2f2;
-    text-align:center;
-}
-.container{
-    background:white;
-    width:600px;
-    margin:auto;
-    margin-top:30px;
-    padding:20px;
-    border-radius:10px;
-}
-.caixa{
-    width:80%;
-    padding:5px;
-    margin:5px;
-}
-img{
-    width:100px;
-    margin-bottom:10px;
-}
-.grupo{
-    text-align:left;
-    width:80%;
-    margin:auto;
-}
-.grupo label{
-    display:block;
-    margin:5px 0;
-}
-</style>
+    <title>Cadastro da Galeria</title>
 
+    <style>
+        body {
+            font-family: Arial;
+            background-color: #f2f2f2;
+        }
+
+        .container {
+            background-color: white;
+            max-width: 600px;
+            margin: 30px auto;
+            padding: 25px;
+            border-radius: 10px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+        }
+
+        .caixa {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+
+        .mensagem {
+            padding: 12px;
+            background-color: #e8e8e8;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px;
+        }
+    </style>
 </head>
+
 <body>
 
 <div class="container">
 
-<img src="https://cdn-icons-png.flaticon.com/128/13671/13671693.png">    
+    <h2>Cadastro da Galeria de Fotos</h2>
 
+    <?php
+    // Recebe o resultado enviado pelo insertGaleria.php.
+    $status = isset($_GET["status"]) ? $_GET["status"] : "";
+    ?>
 
-<form method="post" action="insertAluno.php" enctype="multipart/form-data">
-    Galeria de foto:<br>
-    <input type="varchar" name="gal_fotos" class="caixa"><br>
-      
-<br>
+    <?php if ($status == "sucesso"): ?>
 
-<!--Botões de Enviar e Limpar-->
-<input type="submit" value="ENVIAR" class="caixa">
-<input type="reset" value="CANCELAR" class="caixa">
+        <p class="mensagem">
+            Galeria cadastrada com sucesso!
+            <a href="index.php">Visualizar no site</a>
+        </p>
 
-</form>
-<!--Início da tabela de visualização de usuário -->
-<table>
-    <thead>
-        <tr>
-            <th>ID da Galeria</th>
-            <th>Galeria de Fotos</th>
-        </tr>
-    </thead>
+    <?php elseif ($status == "erro"): ?>
 
-<!--A partir da segunda linha da tabela os 
-dados serão em PHP e virão do banco de dados-->    
-    <tbody>
-        <?php
-            //Verifica se há registros retornados
-                    $sql = "SELECT * FROM galeria_fotos";
-                    
-                    $result = $conn->query($sql);
-                    while($row = $result->fetch_assoc()){
-                        $gal_id = $row['gal_id'];
-                        echo "<tr>      
-                                <td>{$row['gal_id']}</td>
-                                <td>{$row['gal_fotos']}</td>
-                                
-                                <td>
-                                <a href='editarFormGaleria.php?gal_id=$gal_id'>
-                                <img src='../img/lapis.jpg'
-                                width='10' height='10'>
-                                </a>
+        <p class="mensagem">
+            Não foi possível cadastrar.
+            Confira os dados, as imagens e a estrutura do banco.
+        </p>
 
-                                <a href='deleteGaleria.php?usucli_id=$gal_id'
-                                onclick=\"return confirm('Deseja realmente excluir
-                                a galeria {$row['gal_id']}?');\"> 
-                                
-                                <img src='../img/lixeira.png' width='10' height='10'>  
-                                
-                                </a>
-                                </td>
-                             </tr>";
-                    }
-        ?>
-        
-    </tbody>
-</table>
+    <?php endif; ?>
 
+    <!-- enctype é necessário para enviar arquivos. -->
+    <form
+        action="insertGaleria.php"
+        method="post"
+        enctype="multipart/form-data"
+    >
+
+        <label for="titulo">Título da galeria:</label>
+
+        <input
+            type="text"
+            id="titulo"
+            name="titulo"
+            class="caixa"
+            maxlength="100"
+            required
+        >
+
+        <label for="descricao">Descrição:</label>
+
+        <textarea
+            id="descricao"
+            name="descricao"
+            class="caixa"
+            maxlength="255"
+            rows="3"
+            required
+        ></textarea>
+
+        <label for="imagens">Selecione as imagens:</label>
+
+        <!-- multiple permite selecionar várias imagens. -->
+        <input
+            type="file"
+            id="imagens"
+            name="imagens[]"
+            class="caixa"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            required
+        >
+
+        <p>Imagens JPG, PNG ou WEBP, com até 5 MB cada.</p>
+
+        <label for="legenda">Legenda das imagens:</label>
+
+        <input
+            type="text"
+            id="legenda"
+            name="legenda"
+            class="caixa"
+            maxlength="255"
+        >
+
+        <button type="submit">CADASTRAR</button>
+        <button type="reset">LIMPAR</button>
+
+        <p>
+            <a href="index.php">Voltar ao site</a>
+        </p>
+
+    </form>
 
 </div>
 
 </body>
 </html>
-

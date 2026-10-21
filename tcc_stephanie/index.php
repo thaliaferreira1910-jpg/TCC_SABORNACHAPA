@@ -1,44 +1,21 @@
 <?php
-// Conexão com o banco
-include "../conexao.php";
 
-/*===========ESTRUTURA DE FILTRO DE BUSCA======================*/
+// Conexão com o banco.
+require_once __DIR__ . "/conexao.php";
 
-/* Captura o termo enviado pelo método GET
-   vindo da caixa de pesquisa. */
-$busca = isset($_GET['buscar']) ? $_GET['buscar'] : "";
-
-/* Esta linha impede que usuários utilizem a caixa de 
-   pesquisa para tentar invadir utilizando por exemplo
-   SQLInjection. */
-$busca_segura = $conn->real_escape_string($busca);
-
-/* A variável filtro inicia vazia.
-   Caso o usuário digite algo, ela será preenchida
-   com a estrutura do WHERE + LIKE usando % (parte da palavra). */
-$filtro = "";
-if (!empty($busca_segura)) {
-    $filtro = "WHERE titulo LIKE '%$busca_segura%' 
-               OR autor LIKE '%$busca_segura%' 
-               OR ano_publicacao LIKE '%$busca_segura%'";
-}
-
-/* Consulta SQL final aplicada à tabela de livros */
-$sql = "SELECT * FROM tbl_livro $filtro ORDER BY titulo ASC";
-$result = $conn->query($sql);
-
-/* Busca as 5 fotos mais recentes para o carrossel */
-$sqlGaleria = "SELECT 
-                    f.id,
+$erroGaleria = "";
+// Busca as 5 fotos mais recentes.
+$sqlGaleria = "SELECT
+                    f.gf_id AS id,
                     f.caminho_imagem,
                     f.legenda,
                     f.data_cadastro,
                     g.titulo AS titulo_galeria,
                     g.descricao
-               FROM fotos_livros AS f
+               FROM galeria_fotos AS f
                INNER JOIN galeria AS g
                    ON g.id = f.galeria_id
-               ORDER BY f.data_cadastro DESC, f.id DESC
+               ORDER BY f.data_cadastro DESC, f.gf_id DESC
                LIMIT 5";
 
 $resultGaleria = $conn->query($sqlGaleria);
@@ -47,11 +24,24 @@ $imagensGaleria = [];
 
 if ($resultGaleria && $resultGaleria->num_rows > 0) {
     while ($imagemGaleria = $resultGaleria->fetch_assoc()) {
+
+        // Ajusta o caminho para a pasta uploads ao lado do index.php.
+        // Exemplo: "../uploads/foto.jpg" vira "uploads/foto.jpg".
+        $caminho = str_replace(
+            '\\',
+            '/',
+            trim($imagemGaleria['caminho_imagem'] ?? '')
+        );
+
+        $imagemGaleria['caminho_imagem'] = preg_replace(
+            '#^\.\./uploads/#',
+            'uploads/',
+            $caminho
+        );
+
         $imagensGaleria[] = $imagemGaleria;
     }
 }
-
-/*===========FECHA A ESTRUTURA DE FILTRO DE BUSCA======================*/
 ?>
 
 <!DOCTYPE html>
@@ -60,25 +50,31 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sabor na Chapa</title>
+
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
     <!-- Bootstrap Icons -->
     <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <style>
         * {
             box-sizing: border-box;
         }
+
         body {
             margin: 0;
             background-color: #10151c;
             color: white;
             font-family: Arial, Helvetica, sans-serif;
         }
+
         /*NAVBAR*/
         .navbar {
             background-color: #111820 !important;
         }
+
         .navbar-brand {
             color: white !important;
             font-weight: bold;
@@ -86,34 +82,41 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             align-items: center;
             gap: 10px;
         }
+
         .navbar-brand img {
             width: 80px;
             height: 80px;
             object-fit: contain;
         }
+
         .navbar-nav .nav-link {
             color: white !important;
             margin: 0 8px;
             font-weight: 500;
         }
+
         .navbar-nav .nav-link:hover {
             color: #e64b23 !important;
         }
+
         /*CARROSSEL*/
         #inicio {
             padding-top: 20px;
         }
+
         .carousel {
             max-width: 1200px;
             margin: auto;
             overflow: hidden;
             border-radius: 18px;
         }
+
         .carousel-item img {
             width: 100%;
             height: 430px;
             object-fit: cover;
         }
+
         /*BANNER - FAÇA SEU PEDIDO*/
         .banner-pedido {
             width: 96%;
@@ -131,10 +134,12 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
             transition: 0.3s;
         }
+
         .banner-pedido:hover {
             transform: scale(1.01);
             box-shadow: 0 5px 25px rgba(242, 90, 36, 0.5);
         }
+
         .banner-pedido::before {
             content: "";
             position: absolute;
@@ -142,6 +147,7 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             background: rgba(0, 0, 0, 0.10);
             z-index: 1;
         }
+
         .banner-pedido a {
             position: relative;
             display: block;
@@ -151,6 +157,7 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             color: white;
             z-index: 2;
         }
+
         /*PINCELADA LARANJA*/
         .pincel-laranja {
             position: absolute;
@@ -188,8 +195,8 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             );
             z-index: 2;
         }
-        /*PINCELADA PRETA*/
 
+        /*PINCELADA PRETA*/
         .pincel-preto {
             position: absolute;
             left: 32.5%;
@@ -226,40 +233,44 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             );
             z-index: 3;
         }
-        /*RISCOS DA PINCELADA*/
 
+        /*RISCOS DA PINCELADA*/
         .risco {
             position: absolute;
             background: #111;
             z-index: 4;
             transform: rotate(-8deg);
         }
+
         .risco1 {
             width: 35px;
             height: 5px;
             left: 33%;
             top: 27%;
         }
+
         .risco2 {
             width: 25px;
             height: 5px;
             left: 35%;
             top: 70%;
         }
+
         .risco3 {
             width: 32px;
             height: 5px;
             left: 70%;
             top: 27%;
         }
+
         .risco4 {
             width: 25px;
             height: 4px;
             left: 69%;
             top: 70%;
         }
-        /*TEXTO DO BANNER*/
 
+        /*TEXTO DO BANNER*/
         .texto-pedido {
             position: absolute;
             left: 53%;
@@ -277,6 +288,7 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                 3px 3px 0 #222,
                 4px 4px 5px rgba(0, 0, 0, 0.8);
         }
+
         .texto-pedido span {
             display: block;
             margin-top: 10px;
@@ -286,8 +298,8 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                 3px 3px 0 #000,
                 4px 4px 5px rgba(0, 0, 0, 0.8);
         }
-        /*ÍCONE DA MÃO*/
 
+        /*ÍCONE DA MÃO*/
         .icone-pedido {
             position: absolute;
             right: 17%;
@@ -299,25 +311,29 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             filter: drop-shadow(3px 3px 3px #000);
             animation: clique 1.4s infinite;
         }
+
         @keyframes clique {
             0% {
                 transform: translateY(-50%) scale(1);
             }
+
             50% {
                 transform: translateY(-50%) scale(1.12);
             }
+
             100% {
                 transform: translateY(-50%) scale(1);
             }
         }
-        /*CARDÁPIO*/
 
+        /*CARDÁPIO*/
         .titulo {
             text-align: center;
             color: #e64b23;
             font-weight: bold;
             margin-bottom: 30px;
         }
+
         .card {
             background-color: #111820;
             color: white;
@@ -327,21 +343,24 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             height: 100%;
             transition: 0.3s;
         }
+
         .card:hover {
             transform: translateY(-4px);
             border-color: #e64b23;
         }
+
         .card img {
             width: 100%;
             height: 230px;
             object-fit: cover;
         }
+
         .card-title {
             color: #e64b23;
             font-weight: bold;
         }
-        /*AVALIAÇÕES */
 
+        /*AVALIAÇÕES*/
         .avaliacao {
             background-color: #111820;
             padding: 25px;
@@ -349,57 +368,69 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             border: 1px solid #333;
             height: 100%;
         }
+
         .avaliacao i {
             color: #ffc107;
         }
+
         /*FOOTER*/
         footer {
             background-color: #0b1016;
             margin-top: 50px;
             padding: 40px 20px 20px;
         }
+
         footer h5 {
             color: #e64b23;
             font-weight: bold;
         }
+
         footer a {
             color: white;
             text-decoration: none;
         }
+
         footer a:hover {
             color: #e64b23;
         }
+
         .social-icons a {
             font-size: 25px;
             margin-right: 15px;
         }
-        /*CELULAR*/
 
+        /*CELULAR*/
         @media (max-width: 768px) {
             .carousel-item img {
                 height: 280px;
             }
+
             .banner-pedido {
                 height: 150px;
                 width: 94%;
                 border-radius: 15px;
             }
+
             .pincel-laranja {
                 left: 19%;
                 width: 65%;
             }
+
             .pincel-preto {
                 left: 21%;
                 width: 61%;
             }
+
             .texto-pedido {
                 left: 51%;
                 width: 57%;
                 font-size: 20px;
             }
+
             .texto-pedido span {
                 margin-top: 6px;
             }
+
             .icone-pedido {
                 right: 4%;
                 font-size: 38px;
@@ -417,9 +448,9 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             </a>
 
             <button class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#menu">
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#menu">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
@@ -458,116 +489,176 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
             </div>
         </div>
     </nav>
-    <!--INÍCIO-->
+
+    <!--======================INÍCIO DO CARROSSEL=======================-->
 
     <main id="inicio">
 
-    <!-- Carrossel alimentado pelas 5 imagens mais recentes de fotos_livros -->
-<?php if (count($imagensGaleria) > 0): ?>
-<section class="container mt-4" aria-label="Destaques da galeria de livros">
-    <div id="carouselGaleria" class="carousel slide carousel-fade shadow rounded overflow-hidden"
-         data-bs-ride="carousel">
+        <?php if ($erroGaleria != ""): ?>
 
-        <div class="carousel-indicators">
-            <?php foreach ($imagensGaleria as $indice => $imagem): ?>
-                <button type="button" data-bs-target="#carouselGaleria"
-                        data-bs-slide-to="<?= $indice ?>"
-                        class="<?= $indice === 0 ? 'active' : '' ?>"
-                        aria-current="<?= $indice === 0 ? 'true' : 'false' ?>"
-                        aria-label="Slide <?= $indice + 1 ?>"></button>
-            <?php endforeach; ?>
-        </div>
-
-        <div class="carousel-inner">
-            <?php foreach ($imagensGaleria as $indice => $imagem): ?>
-                <div class="carousel-item <?= $indice === 0 ? 'active' : '' ?>" data-bs-interval="4000">
-                    <img src="<?= htmlspecialchars($imagem['caminho_imagem']) ?>"
-                         class="d-block w-100"
-                         style="height: 420px; object-fit: cover;"
-                         alt="<?= htmlspecialchars($imagem['legenda'] ?: $imagem['titulo_galeria']) ?>">
-                    <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
-                        <h5><?= htmlspecialchars($imagem['titulo_galeria']) ?></h5>
-                        <?php if (!empty($imagem['legenda'])): ?>
-                            <p><?= htmlspecialchars($imagem['legenda']) ?></p>
-                        <?php elseif (!empty($imagem['descricao'])): ?>
-                            <p><?= htmlspecialchars($imagem['descricao']) ?></p>
-                        <?php endif; ?>
-                    </div>
+            <div class="container mt-4">
+                <div class="alert alert-danger">
+                    <?= htmlspecialchars($erroGaleria, ENT_QUOTES, "UTF-8") ?>
                 </div>
-            <?php endforeach; ?>
-        </div>
+            </div>
 
-        <button class="carousel-control-prev" type="button" data-bs-target="#carouselGaleria" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Anterior</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#carouselGaleria" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Próximo</span>
-        </button>
-    </div>
-</section>
-<?php endif; ?>
+        <?php elseif (count($imagensGaleria) > 0): ?>
 
-<?php if (count($imagensGaleria) === 0): ?>
-<div class="container mt-4">
-    <div class="alert alert-info mb-0">
-        Ainda não existem imagens cadastradas na galeria.
-    </div>
-</div>
-<?php endif; ?>
+            <section class="container mt-4"
+                     aria-label="Destaques da galeria">
+
+                <div id="carouselGaleria"
+                     class="carousel slide carousel-fade shadow rounded overflow-hidden"
+                     data-bs-ride="carousel">
+
+                    <div class="carousel-indicators">
+
+                        <?php foreach ($imagensGaleria as $indice => $imagem): ?>
+
+                            <button type="button"
+                                    data-bs-target="#carouselGaleria"
+                                    data-bs-slide-to="<?= $indice ?>"
+                                    class="<?= $indice === 0 ? 'active' : '' ?>"
+                                    aria-current="<?= $indice === 0 ? 'true' : 'false' ?>"
+                                    aria-label="Slide <?= $indice + 1 ?>">
+                            </button>
+
+                        <?php endforeach; ?>
+
+                    </div>
+
+                    <div class="carousel-inner">
+
+                        <?php foreach ($imagensGaleria as $indice => $imagem): ?>
+
+                            <div class="carousel-item <?= $indice === 0 ? 'active' : '' ?>"
+                                 data-bs-interval="4000">
+
+                                <!--
+                                    O banco guarda caminhos como:
+                                    uploads/galeria/nome-da-imagem.jpg
+                                -->
+                                <img
+                                    src="<?= htmlspecialchars(
+                                        $imagem["caminho_imagem"] ?? "",
+                                        ENT_QUOTES,
+                                        "UTF-8"
+                                    ) ?>"
+                                    class="d-block w-100"
+                                    alt="<?= htmlspecialchars(
+                                        $imagem["legenda"] ?: $imagem["titulo_galeria"],
+                                        ENT_QUOTES,
+                                        "UTF-8"
+                                    ) ?>"
+                                >
+
+                                <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded p-2">
+
+                                    <h5>
+                                        <?= htmlspecialchars(
+                                            $imagem["titulo_galeria"],
+                                            ENT_QUOTES,
+                                            "UTF-8"
+                                        ) ?>
+                                    </h5>
+
+                                    <?php if (!empty($imagem["legenda"])): ?>
+
+                                        <p>
+                                            <?= htmlspecialchars(
+                                                $imagem["legenda"],
+                                                ENT_QUOTES,
+                                                "UTF-8"
+                                            ) ?>
+                                        </p>
+
+                                    <?php elseif (!empty($imagem["descricao"])): ?>
+
+                                        <p>
+                                            <?= htmlspecialchars(
+                                                $imagem["descricao"],
+                                                ENT_QUOTES,
+                                                "UTF-8"
+                                            ) ?>
+                                        </p>
+
+                                    <?php endif; ?>
+
+                                </div>
+
+                            </div>
+
+                        <?php endforeach; ?>
+
+                    </div>
+
+                    <button class="carousel-control-prev"
+                            type="button"
+                            data-bs-target="#carouselGaleria"
+                            data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"
+                              aria-hidden="true"></span>
+                        <span class="visually-hidden">Anterior</span>
+                    </button>
+
+                    <button class="carousel-control-next"
+                            type="button"
+                            data-bs-target="#carouselGaleria"
+                            data-bs-slide="next">
+                        <span class="carousel-control-next-icon"
+                              aria-hidden="true"></span>
+                        <span class="visually-hidden">Próximo</span>
+                    </button>
+
+                </div>
+
+            </section>
+
+        <?php else: ?>
+
+            <div class="container mt-4">
+                <div class="alert alert-info mb-0">
+                    Ainda não existem imagens cadastradas na galeria.
+                </div>
+            </div>
+
+        <?php endif; ?>
+
+        <!--============FINAL DO CARROSSEL=========================-->
 
         <!--BANNER FAÇA SEU PEDIDO-->
 
         <div class="banner-pedido">
             <a href="pedido.html">
-                <!-- PINCELADA LARANJA -->
 
+                <!-- PINCELADA LARANJA -->
                 <div class="pincel-laranja"></div>
 
-
                 <!-- PINCELADA PRETA -->
-
                 <div class="pincel-preto"></div>
 
-
                 <!-- RISCOS -->
-
                 <div class="risco risco1"></div>
-
                 <div class="risco risco2"></div>
-
                 <div class="risco risco3"></div>
-
                 <div class="risco risco4"></div>
 
-
                 <!-- TEXTO -->
-
                 <div class="texto-pedido">
-
                     FAÇA SEU
 
                     <span>
                         PEDIDO AQUI!
                     </span>
-
                 </div>
-
 
                 <!-- MÃOZINHA -->
-
                 <div class="icone-pedido">
-
                     <i class="bi bi-hand-index-thumb"></i>
-
                 </div>
 
-
             </a>
-
         </div>
-
 
         <!-- ==========================
              CARDÁPIO
@@ -579,20 +670,15 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                 Os Mais Pedidos
             </h2>
 
-
             <div class="row g-4">
 
-
                 <!-- PRODUTO 1 -->
-
                 <div class="col-lg-4 col-md-6">
-
                     <div class="card">
 
                         <img src="imagens/l3.jpg"
-                            class="card-img-top"
-                            alt="Hambúrguer Especial">
-
+                             class="card-img-top"
+                             alt="Hambúrguer Especial">
 
                         <div class="card-body">
 
@@ -606,22 +692,16 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                             </p>
 
                         </div>
-
                     </div>
-
                 </div>
 
-
                 <!-- PRODUTO 2 -->
-
                 <div class="col-lg-4 col-md-6">
-
                     <div class="card">
 
                         <img src="imagens/l1.jpg"
-                            class="card-img-top"
-                            alt="Hambúrguer Clássico">
-
+                             class="card-img-top"
+                             alt="Hambúrguer Clássico">
 
                         <div class="card-body">
 
@@ -635,22 +715,16 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                             </p>
 
                         </div>
-
                     </div>
-
                 </div>
 
-
                 <!-- PRODUTO 3 -->
-
                 <div class="col-lg-4 col-md-6">
-
                     <div class="card">
 
                         <img src="imagens/l2.jpg"
-                            class="card-img-top"
-                            alt="Hambúrguer Premium">
-
+                             class="card-img-top"
+                             alt="Hambúrguer Premium">
 
                         <div class="card-body">
 
@@ -664,16 +738,11 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                             </p>
 
                         </div>
-
                     </div>
-
                 </div>
 
-
             </div>
-
         </section>
-
 
         <!-- ==========================
              AVALIAÇÕES
@@ -685,24 +754,18 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                 Avaliações dos Clientes
             </h2>
 
-
             <div class="row g-4">
 
-
                 <!-- AVALIAÇÃO 1 -->
-
                 <div class="col-lg-3 col-md-6">
-
                     <div class="avaliacao">
 
                         <div>
-
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
-
                         </div>
 
                         <p class="mt-3">
@@ -714,24 +777,18 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                         </strong>
 
                     </div>
-
                 </div>
 
-
                 <!-- AVALIAÇÃO 2 -->
-
                 <div class="col-lg-3 col-md-6">
-
                     <div class="avaliacao">
 
                         <div>
-
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
-
                         </div>
 
                         <p class="mt-3">
@@ -743,24 +800,18 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                         </strong>
 
                     </div>
-
                 </div>
 
-
                 <!-- AVALIAÇÃO 3 -->
-
                 <div class="col-lg-3 col-md-6">
-
                     <div class="avaliacao">
 
                         <div>
-
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
-
                         </div>
 
                         <p class="mt-3">
@@ -772,24 +823,18 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                         </strong>
 
                     </div>
-
                 </div>
 
-
                 <!-- AVALIAÇÃO 4 -->
-
                 <div class="col-lg-3 col-md-6">
-
                     <div class="avaliacao">
 
                         <div>
-
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
                             <i class="bi bi-star-fill"></i>
-
                         </div>
 
                         <p class="mt-3">
@@ -801,17 +846,12 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                         </strong>
 
                     </div>
-
                 </div>
 
-
             </div>
-
         </section>
 
-
     </main>
-
 
     <!-- ==========================
          RODAPÉ
@@ -820,28 +860,38 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
     <footer id="sobre">
         <div class="container">
             <div class="row">
+
                 <div class="col-md-6">
+
                     <h5>
                         Sabor na Chapa
                     </h5>
+
                     <p>
                         O melhor sabor para deixar
                         seu momento ainda mais especial.
                     </p>
+
                 </div>
+
                 <div class="col-md-6">
+
                     <h5>
                         Contato
                     </h5>
+
                     <p>
                         <i class="bi bi-telephone"></i>
                         (12) 4002-8922
                     </p>
+
                     <p>
                         <i class="bi bi-envelope"></i>
                         contato@sabornachapa.com
                     </p>
+
                     <div class="social-icons">
+
                         <a href="#">
                             <i class="bi bi-instagram"></i>
                         </a>
@@ -853,23 +903,25 @@ if ($resultGaleria && $resultGaleria->num_rows > 0) {
                         <a href="#">
                             <i class="bi bi-whatsapp"></i>
                         </a>
+
                     </div>
+
                 </div>
+
             </div>
+
             <hr>
+
             <p class="text-center mb-0">
                 © 2026 Sabor na Chapa -
                 Todos os direitos reservados.
             </p>
+
         </div>
     </footer>
 
-
     <!-- Bootstrap JavaScript -->
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
-
 </html>
