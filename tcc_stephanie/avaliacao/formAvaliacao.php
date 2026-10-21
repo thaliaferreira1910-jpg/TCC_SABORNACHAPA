@@ -2,6 +2,8 @@
 /*Aqui virá o código de busca 
 utilizando o comando SQL*/
 include "../conexao.php";
+
+//include"protege.php";
 ?>
 
 <!DOCTYPE html>

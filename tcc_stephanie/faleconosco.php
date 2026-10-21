@@ -1,3 +1,7 @@
+<?php
+//include"protege.php";
+
+?>
 <!DOCTYPE html>
 <html lang="pt-br">
 
